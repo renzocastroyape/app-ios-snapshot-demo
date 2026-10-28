@@ -18,7 +18,7 @@ enum SnapshotVariant: String, CaseIterable {
     case largeText
 
     // The image scale comes from the traits override, not from the device config.
-    private static let imageScale = UITraitCollection(displayScale: 2)
+    private static let imageScale = UITraitCollection(displayScale: 1)
 
     var traits: UITraitCollection {
         switch self {

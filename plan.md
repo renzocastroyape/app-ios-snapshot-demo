@@ -52,6 +52,8 @@ Convenciones:
   - Estados clave (cargando, contenido, error, vacío).
   - Light y dark mode.
   - Un solo tamaño de dispositivo (el del simulador de referencia) y un tamaño grande de Dynamic Type.
+  - Escala de imagen fija en 1x (independiente del simulador) para mantener los archivos pequeños; la escala se define en `Shared/SnapshotSupport`.
+  - Comparación con `precision: 1` y `perceptualPrecision: 0.98`: no se tolera ningún píxel distinto en cantidad, solo pequeñas diferencias de color por antialiasing.
   - Sin contenido no determinista (fechas, animaciones, red): datos fijos y dependencias inyectadas.
 - Los snapshots de referencia se guardan en `__Snapshots__/` dentro del repo.
 - Por defecto los tests nunca graban: un snapshot ausente o distinto hace fallar la prueba. La grabación solo ocurre de forma explícita (`make snapshots-record`).
