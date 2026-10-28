@@ -54,7 +54,7 @@ func assertScreenSnapshots(
             of: makeViewController(),
             as: .image(
                 on: .referenceDevice,
-                precision: 0.99,
+                precision: 1,
                 perceptualPrecision: 0.98,
                 traits: variant.traits
             ),
