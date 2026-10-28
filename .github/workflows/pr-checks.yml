@@ -49,9 +49,6 @@ jobs:
 
   snapshot-tests:
     runs-on: xcode-27
-    permissions:
-      contents: read
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: jdx/mise-action@v2
@@ -67,16 +64,6 @@ jobs:
       - run: make bootstrap
       - run: make test-snapshot
 
-      - name: Collect new snapshots
-        if: failure()
-        run: |
-          mkdir -p build/snapshot-artifacts/new
-          git ls-files --others --exclude-standard -- '*__Snapshots__*' \
-            | while read -r file; do
-                mkdir -p "build/snapshot-artifacts/new/$(dirname "$file")"
-                cp "$file" "build/snapshot-artifacts/new/$file"
-              done
-
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -85,11 +72,67 @@ jobs:
             build/snapshot-artifacts
             build/SnapshotTests.xcresult
 
-      - name: Comment on PR
-        if: failure() && github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+  # Commits regenerated snapshots to the PR branch so the image diff shows up in the PR.
+  # Merging still requires the Code Owner review of `__Snapshots__/`.
+  update-snapshots:
+    needs: snapshot-tests
+    if: >-
+      failure()
+      && needs.snapshot-tests.result == 'failure'
+      && github.event_name == 'pull_request'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: xcode-27
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: ${{ github.head_ref }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: jdx/mise-action@v2
+        with:
+          cache: true
+      - uses: actions/cache@v4
+        with:
+          path: Tuist/.build
+          key: spm-${{ runner.os }}-${{ hashFiles('Tuist/Package.swift', 'Tuist/Package.resolved') }}
+      - uses: ./.github/actions/setup-xcode
+        with:
+          ios-version: ${{ env.SIMULATOR_OS }}
+      - run: make bootstrap
+
+      # Fails (and commits nothing) if the regenerated snapshots do not verify.
+      - name: Record and verify snapshots
+        run: make snapshots-record
+
+      - name: Commit snapshots
+        id: commit
         run: |
-          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          gh pr comment "$PR_NUMBER" --edit-last --create-if-none --body "Snapshot tests failed. Differences and new snapshots are in the \`snapshot-failures\` artifact of [this run](${run_url}). If the change is intended, the reviewer can comment \`/update-snapshots\` or add the \`approve-snapshots\` label to commit the updated snapshots to this branch."
+          git add -A -- '*__Snapshots__*'
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git diff --cached --name-status -- '*__Snapshots__*' > build/snapshot-changes.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update snapshots"
+          git push origin "HEAD:${BRANCH}"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      # Pushes made with GITHUB_TOKEN do not trigger workflows, so the checks are dispatched explicitly.
+      # The dispatched run has no pull_request event, which prevents an update loop.
+      - name: Re-run PR checks
+        if: steps.commit.outputs.changed == 'true'
+        run: gh workflow run pr-checks.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+
+      - name: Comment on PR
+        if: steps.commit.outputs.changed == 'true'
+        run: |
+          body="Snapshot tests failed, so the snapshots were regenerated in CI and pushed to this branch. Review the image diff in **Files changed**; \`@renzocastroyape\` must approve it before merging."$'\n\n```\n'"$(cat build/snapshot-changes.txt)"$'\n```'
+          gh pr comment "$PR_NUMBER" --edit-last --create-if-none --body "$body"

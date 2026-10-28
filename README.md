@@ -42,11 +42,13 @@ CI runs all jobs on the `xcode-27` runner image (public preview), which ships Xc
 Changes under `__Snapshots__/` require review from `@renzocastroyape` (see `.github/CODEOWNERS`).
 
 1. If snapshots were pushed with the PR, `snapshot-tests` verifies them and the reviewer approves the image diff.
-2. If the UI changed and snapshots were not pushed, `snapshot-tests` fails, uploads the differences and new snapshots as the `snapshot-failures` artifact and comments on the PR.
-3. After reviewing them, `@renzocastroyape` comments `/update-snapshots` or adds the `approve-snapshots` label. `Update Snapshots` re-records the snapshots in CI, commits them to the PR branch and dispatches `PR Checks` again.
+2. If the UI changed and snapshots were not pushed, `snapshot-tests` fails and the `update-snapshots` job regenerates them in CI, verifies them, commits them to the PR branch, comments on the PR and dispatches `PR Checks` again.
+3. The image diff shows up in **Files changed** and `@renzocastroyape` approves it; the PR cannot be merged without that approval.
+
+The update job only runs for `pull_request` events from branches of this repository.
 
 ## Repository settings
 - Require the `lint`, `unit-tests` and `snapshot-tests` checks on the protected branch.
 - Enable "Require review from Code Owners".
-- Allow GitHub Actions to create and approve pull requests / write to contents (workflow permissions), and create the `approve-snapshots` label.
+- Allow GitHub Actions to write to contents and pull requests (workflow permissions).
 - If "Dismiss stale pull request approvals" is on, the reviewer must approve again after the snapshot commit.

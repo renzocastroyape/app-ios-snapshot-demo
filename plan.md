@@ -94,19 +94,20 @@ Casos:
    - `snapshot-tests` verifica que coincidan con el render actual.
    - El diff de imágenes aparece en el PR y lo aprueba `@renzocastroyape`.
 2. **El autor cambió la UI pero no subió snapshots**
-   - `snapshot-tests` falla y publica como artefacto los snapshots nuevos y los diffs.
-   - Un workflow aparte (`update-snapshots.yml`) los regenera en el runner y comenta en el PR un resumen con las imágenes.
-   - Tras la revisión, `@renzocastroyape` aprueba con el comando `/update-snapshots` (comentario) o la etiqueta `approve-snapshots`. El workflow hace commit de los snapshots a la rama del PR y relanza los checks.
+   - `snapshot-tests` falla y publica como artefacto los diffs.
+   - El job `update-snapshots` (en `pr-checks.yml`) regenera los snapshots en el runner, los verifica y hace commit a la rama del PR. Comenta en el PR la lista de archivos y relanza los checks.
+   - El diff de imágenes aparece en el PR ("Files changed") y lo aprueba `@renzocastroyape`, igual que en el caso 1. No se puede mergear sin esa aprobación (Code Owners).
+   - Si el revisor no aprueba el cambio, el autor corrige la UI o revierte el commit de snapshots.
 
 Reglas:
 - Los snapshots solo se generan con el simulador y Xcode fijados (idealmente en CI) para evitar diferencias por entorno.
-- Un snapshot nunca se actualiza automáticamente sin aprobación del revisor; el workflow valida que quien comenta o etiqueta sea el revisor.
-- El commit automático usa permisos mínimos (`contents: write`, `pull-requests: write`) y no se dispara por sus propios commits (evita bucles).
+- Un snapshot actualizado por el bot no llega a la rama principal sin la aprobación del revisor (Code Owners sobre `__Snapshots__/`).
+- El job de actualización usa permisos mínimos (`contents: write`, `pull-requests: write`, `actions: write`), solo corre en eventos `pull_request` de ramas del mismo repositorio, y el relanzamiento de checks es un `workflow_dispatch` (sin evento `pull_request`), lo que evita bucles.
 
 ## Entregables
 1. Proyecto Tuist modular con 3 módulos de ejemplo (`DesignSystem`, `FeatureUIKit`, `FeatureSwiftUI`) y la app contenedora.
 2. Configuración de SwiftLint.
 3. Unit tests y snapshot tests por módulo, con sus snapshots de referencia.
 4. `Makefile`, `.mise.toml`, `.gitignore`.
-5. Workflows de GitHub (`pr-checks.yml`, `update-snapshots.yml`) y `CODEOWNERS`.
+5. Workflow de GitHub (`pr-checks.yml`, con el job `update-snapshots`) y `CODEOWNERS`.
 6. `README.md` breve: instalación, ejecución de pruebas, grabación de snapshots y flujo de aprobación.
