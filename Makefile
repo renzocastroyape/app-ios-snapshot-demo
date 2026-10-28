@@ -1,5 +1,6 @@
+# CI overrides SIMULATOR_OS=27.0, the reference runtime for snapshots.
 SIMULATOR_NAME ?= iPhone 17
-SIMULATOR_OS ?= 27.0
+SIMULATOR_OS ?= 27.2
 DESTINATION := platform=iOS Simulator,name=$(SIMULATOR_NAME),OS=$(SIMULATOR_OS)
 
 WORKSPACE := SnapshotDemo.xcworkspace
@@ -28,8 +29,8 @@ test-unit: generate
 		-resultBundlePath $(BUILD_DIR)/UnitTests.xcresult
 
 test-snapshot: generate
-	rm -rf $(BUILD_DIR)/SnapshotTests.xcresult
-	set -o pipefail && xcodebuild test \
+	rm -rf $(BUILD_DIR)/SnapshotTests.xcresult $(BUILD_DIR)/snapshot-artifacts
+	set -o pipefail && TEST_RUNNER_SNAPSHOT_ARTIFACTS=$(CURDIR)/$(BUILD_DIR)/snapshot-artifacts xcodebuild test \
 		-workspace $(WORKSPACE) \
 		-scheme SnapshotTests \
 		-destination '$(DESTINATION)' \

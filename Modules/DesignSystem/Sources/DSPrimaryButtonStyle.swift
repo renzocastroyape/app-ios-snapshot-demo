@@ -4,10 +4,10 @@ public struct DSPrimaryButtonStyle: ButtonStyle {
     public init() {}
 
     public func makeBody(configuration: ButtonStyleConfiguration) -> some View {
-        Body(configuration: configuration)
+        StyledButton(configuration: configuration)
     }
 
-    private struct Body: View {
+    private struct StyledButton: View {
         @Environment(\.isEnabled) private var isEnabled
         let configuration: ButtonStyleConfiguration
 

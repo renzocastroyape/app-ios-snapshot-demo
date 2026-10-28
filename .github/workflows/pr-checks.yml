@@ -1,0 +1,95 @@
+name: PR Checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Reference runtime for snapshots; the Makefile reads SIMULATOR_OS.
+  SIMULATOR_OS: "27.0"
+
+jobs:
+  lint:
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+        with:
+          cache: true
+      - run: make lint
+
+  unit-tests:
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+        with:
+          cache: true
+      - uses: actions/cache@v4
+        with:
+          path: Tuist/.build
+          key: spm-${{ runner.os }}-${{ hashFiles('Tuist/Package.swift', 'Tuist/Package.resolved') }}
+      - uses: ./.github/actions/setup-xcode
+        with:
+          ios-version: ${{ env.SIMULATOR_OS }}
+      - run: make bootstrap
+      - run: make test-unit
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: unit-tests-xcresult
+          path: build/UnitTests.xcresult
+
+  snapshot-tests:
+    runs-on: xcode-27
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+        with:
+          cache: true
+      - uses: actions/cache@v4
+        with:
+          path: Tuist/.build
+          key: spm-${{ runner.os }}-${{ hashFiles('Tuist/Package.swift', 'Tuist/Package.resolved') }}
+      - uses: ./.github/actions/setup-xcode
+        with:
+          ios-version: ${{ env.SIMULATOR_OS }}
+      - run: make bootstrap
+      - run: make test-snapshot
+
+      - name: Collect new snapshots
+        if: failure()
+        run: |
+          mkdir -p build/snapshot-artifacts/new
+          git ls-files --others --exclude-standard -- '*__Snapshots__*' \
+            | while read -r file; do
+                mkdir -p "build/snapshot-artifacts/new/$(dirname "$file")"
+                cp "$file" "build/snapshot-artifacts/new/$file"
+              done
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: snapshot-failures
+          path: |
+            build/snapshot-artifacts
+            build/SnapshotTests.xcresult
+
+      - name: Comment on PR
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh pr comment "$PR_NUMBER" --edit-last --create-if-none --body "Snapshot tests failed. Differences and new snapshots are in the \`snapshot-failures\` artifact of [this run](${run_url}). If the change is intended, the reviewer can comment \`/update-snapshots\` or add the \`approve-snapshots\` label to commit the updated snapshots to this branch."

@@ -4,12 +4,12 @@
 Proyecto demo iOS que muestre una estrategia de calidad en PRs: SwiftLint, unit tests y snapshot tests, con aprobación explícita de cambios visuales.
 
 ## Prerequisitos
-- Xcode 27.1 (versión fija, documentada en `.xcode-version` y seleccionada explícitamente en el workflow de CI). Se acepta usar la versión en public preview de los runners de GitHub; si el runner no trae el runtime iOS 27.0, el workflow lo instala (`xcodebuild -downloadPlatform iOS`).
+- Xcode 27.1 (versión fija, documentada en `.xcode-version` y seleccionada explícitamente en el workflow de CI). Se acepta usar la versión en public preview de los runners de GitHub: los jobs con Xcode usan el runner `xcode-27`, que trae Xcode 27.1 y el runtime iOS 27.0. Si faltara el runtime, el workflow lo instala (`xcodebuild -downloadPlatform iOS`).
 - Deployment target: iOS 15.6.
 - mise como gestor de herramientas. Versiones fijadas en `.mise.toml`:
   - tuist
   - swiftlint
-- Simulador de referencia fijo para los snapshots: iPhone 17 con iOS 27.0. Se define una sola vez (p. ej. variables en el `Makefile`) y se reutiliza en local y en CI.
+- Simulador de referencia fijo para los snapshots: iPhone 17 con iOS 27.0 en CI (`SIMULATOR_OS=27.0`). En local el `Makefile` usa iOS 27.2 por defecto (variables `SIMULATOR_NAME` y `SIMULATOR_OS`); los snapshots locales pueden diferir de los de CI, por lo que los de referencia se generan en CI.
 
 ## Proyecto
 ### Arquitectura modular (Tuist)

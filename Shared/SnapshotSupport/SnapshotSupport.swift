@@ -8,10 +8,7 @@ extension ViewImageConfig {
     static let referenceDevice = ViewImageConfig(
         safeArea: UIEdgeInsets(top: 62, left: 0, bottom: 34, right: 0),
         size: CGSize(width: 402, height: 874),
-        traits: UITraitCollection(traitsFrom: [
-            UITraitCollection(displayScale: 3),
-            UITraitCollection(userInterfaceIdiom: .phone)
-        ])
+        traits: UITraitCollection(userInterfaceIdiom: .phone)
     )
 }
 
@@ -20,14 +17,24 @@ enum SnapshotVariant: String, CaseIterable {
     case dark
     case largeText
 
+    // The image scale comes from the traits override, not from the device config.
+    private static let imageScale = UITraitCollection(displayScale: 2)
+
     var traits: UITraitCollection {
         switch self {
         case .light:
-            return UITraitCollection(userInterfaceStyle: .light)
+            return UITraitCollection(traitsFrom: [
+                Self.imageScale,
+                UITraitCollection(userInterfaceStyle: .light)
+            ])
         case .dark:
-            return UITraitCollection(userInterfaceStyle: .dark)
+            return UITraitCollection(traitsFrom: [
+                Self.imageScale,
+                UITraitCollection(userInterfaceStyle: .dark)
+            ])
         case .largeText:
             return UITraitCollection(traitsFrom: [
+                Self.imageScale,
                 UITraitCollection(userInterfaceStyle: .light),
                 UITraitCollection(preferredContentSizeCategory: .accessibilityExtraLarge)
             ])

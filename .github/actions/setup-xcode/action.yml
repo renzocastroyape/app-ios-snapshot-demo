@@ -1,0 +1,33 @@
+name: Setup Xcode
+description: Selects the Xcode version pinned in .xcode-version and ensures the iOS simulator runtime exists.
+
+inputs:
+  ios-version:
+    description: iOS simulator runtime version required by the snapshot tests.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Select Xcode
+      shell: bash
+      run: |
+        version="$(tr -d '[:space:]' < .xcode-version)"
+        app="/Applications/Xcode_${version}.app"
+        if [ ! -d "$app" ]; then
+          echo "::error::$app is not installed on this runner"
+          ls /Applications | grep -i xcode || true
+          exit 1
+        fi
+        sudo xcode-select -s "$app/Contents/Developer"
+        xcodebuild -version
+
+    - name: Ensure iOS runtime
+      shell: bash
+      env:
+        IOS_VERSION: ${{ inputs.ios-version }}
+      run: |
+        if ! xcrun simctl list runtimes available | grep -q "iOS ${IOS_VERSION} ("; then
+          xcodebuild -downloadPlatform iOS -buildVersion "${IOS_VERSION}"
+        fi
+        xcrun simctl list runtimes available
