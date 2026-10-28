@@ -1,0 +1,16 @@
+# Tuist generated
+*.xcodeproj
+*.xcworkspace
+Derived/
+Tuist/.build/
+
+# Build outputs
+build/
+.build/
+*.xcresult
+
+# macOS
+.DS_Store
+
+# Xcode user data
+xcuserdata/

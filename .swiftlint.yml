@@ -1,0 +1,35 @@
+included:
+  - App
+  - Modules
+  - Shared
+  - Project.swift
+  - Tuist.swift
+
+excluded:
+  - Derived
+  - Tuist/.build
+
+opt_in_rules:
+  - empty_count
+  - explicit_init
+  - first_where
+  - sorted_imports
+  - unused_import
+  - vertical_whitespace_closing_braces
+
+disabled_rules:
+  - todo
+
+line_length:
+  warning: 120
+  error: 160
+
+type_body_length:
+  warning: 250
+  error: 400
+
+identifier_name:
+  min_length: 2
+  excluded:
+    - id
+    - vm
