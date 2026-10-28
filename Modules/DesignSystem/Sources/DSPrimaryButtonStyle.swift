@@ -19,7 +19,7 @@ public struct DSPrimaryButtonStyle: ButtonStyle {
                 .padding(.vertical, 14)
                 .padding(.horizontal, 20)
                 .background(Color.dsPrimary.opacity(isEnabled ? 1 : 0.4))
-                .cornerRadius(12)
+                .cornerRadius(24)
                 .opacity(configuration.isPressed ? 0.8 : 1)
         }
     }
